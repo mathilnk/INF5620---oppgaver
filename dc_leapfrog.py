@@ -1,50 +1,117 @@
 from numpy import *
 from matplotlib.pyplot import *
-def a(t):
-	return 1.0
 
-def b(t, c, u0):
-	return c + a(t)*(c*t+u0)	
+class Model:
+    
+    def __init__(self,a=lambda t:t, b=None,c=1, I= 0.1, analytic = None):
+        """
+        The default model has a linear solution. To avoid linear solution you have to provide b not None! a(t) and b(t) and analytic(t) should be functions, c and I a constant. I is the inital condition u(0) = I.
+        """
+        
+        self.a = a
+        self.c = c
+        self.I = I
+        if b==None:
+            self.b = lambda t: c + a(t)*(c*t+I)   #now we know the sol is linear
+            self.analytic = self.analyticalLinearSol #set analytical sol -->linear
+                                                 
+        else:
+            self.b = b
+            self.analytic = analytic # b i given, so we need to know the analytic solution(cannot assume linear solution anymore, it might be linear but we dont know)
 
-def f_linear(un, tn, u0, c=1.23):
-	return -a(tn)*un + b(tn, c, u0)
-def f_exp(un, tn, u0):
-	return -un + 1
-def analytical_exp(t):
-	return 1-exp(-t)
-
-def forwardEuler(f,tn,un, dt):
-	return un + dt*f(un, tn, un)
-
-def solve(f, u0, t_start, t_stop, N):
-
-	dt = (t_stop - t_start)/(N-1)
-	print dt
-	#need to find u1. Does this by Forward Euler
-	u1 = forwardEuler(f, t_start, u0, dt)
-	u = zeros(N)
-	t = linspace(t_start, t_stop, N)
-	u[0] = u0
-	u[1] = u1
-	for i in xrange(1,N-1):
-		u[i+1] =  2*dt*f(u[i], t[i], u0) + u[i-1]
-		
-	return t, u
+  
+    def f(self,un,tn):
+        """
+        The general equation u'(t) = f(u,t), in our model u'(t) = -a(t)u(t) + b(t)
+        """
+        return -self.a(tn)*un + self.b(tn)
+    
+    def analyticalLinearSol(self, t):
+        """
+        Only for equations with linear solutions
+        """
+        return self.c*t + self.I
 
 
-if __name__=='__main__':
-	u0=0.1
-	t_start = 0
-	t_stop = 4.0
-	N = 42
-	t_l,u_l = solve(f_linear, u0, t_start, t_stop, N)
-	plot(t_l,u_l)
-	figure()
-	t_e,u_e = solve(f_exp, 0, t_start, t_stop, N)
-	plot(t_e, u_e)
-	hold('on')
-	plot(t_e, analytical_exp(t_e))
-	legend(["leapfrog", "analytical"])
-	show()
-	
-	
+class Solver:
+
+    def __init__(self, model, t_start=0, t_stop=4.0, N=100):
+        """
+        f should be a function that takes to arguments f(u,t), u0 the initial condition, t_start/t_stop defines the interval, N is number of mesh points.
+        """
+        self.model = model
+        self.f = model.f
+        self.u0 = model.I
+        self.t_start = t_start
+        self.t_stop = t_stop
+        self.N = N
+        self.dt = (t_stop - t_start)/(N-1)
+        self.u1 = self.forwardEuler(self.u0, t_start)
+        self.u = zeros(N)
+        self.t = linspace(t_start, t_stop, N)
+        self.u[0] = self.u0
+        self.u[1] = self.u1
+
+    def forwardEuler(self,un, tn):
+        """
+        Used to find u1
+        """
+        return un + self.dt*self.f(un, tn)
+
+    def solve_LF(self):
+        """
+        Solves the differential eq with the Leapfrog scheme
+        """
+        u = self.u
+        f= self.f
+        dt = self.dt
+        t = self.t
+        N = self.N
+        for n in xrange(1,N-1):
+            u[n+1] = 2*dt*f(u[n],t[n]) + u[n-1]
+        return t,u
+    
+    def plot_num_analy_sol(self):
+        """
+        Plots the numerical solution, and the analytical if the solution is linear, or the analytical solution is given.
+        """
+        figure()
+        plot(self.t,self.u)
+        xlabel("time (s)")
+        ylabel("u(t)")
+        title("Solution to the differential equation u'(t) = -a(t)u(t) +b(t)")
+        if self.model.analytic != None:
+            hold('on')
+            plot(self.t, self.model.analytic(self.t))
+            legend(["Numerical solution", "Analytical solution"])
+        
+        else:
+            print "Analytical solution not given"
+        show()
+        
+
+    
+if __name__ == '__main__':
+    linear = Model()
+    sol = Solver(linear)
+    sol.solve_LF()
+    #sol.plot_num_analy_sol()
+
+    def a(t):
+        return 1
+    def b(t):
+        return 1
+    u0 = 0
+    def exact(t):
+        return 1-exp(-t)
+
+    exp_model = Model(a,b,I=0,analytic = exact)
+    exp_sol = Solver(exp_model)
+    exp_sol.solve_LF()
+    exp_sol.plot_num_analy_sol()
+    
+    
+    
+    
+    
+    
