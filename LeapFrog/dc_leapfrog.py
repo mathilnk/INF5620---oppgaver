@@ -62,6 +62,7 @@ class Solver:
         Solves the differential eq with the Leapfrog scheme
         """
         self.u = zeros(self.N)
+        #print "N in solve_LF: ", self.N
         self.u[0] = self.u0
         self.u[1] = self.u1
         u = self.u
@@ -89,7 +90,7 @@ class Solver:
         
         else:
             print "Analytical solution not given"
-        show()
+        
 
     def find_error(self):
         E = None
@@ -98,42 +99,49 @@ class Solver:
             t = self.t
             u_e = self.model.analytic(t)
             e = u_e -u
-            E = sqrt(self.dt*sum(e**2))
+            E = sqrt(sum(e**2)/float(self.N))
         return E
             
-        
-    def convergence_rate(self, dt_max, dt_min, N_dt):
-        dt_values = linspace(dt_max, dt_min, N_dt)
-        
-        self.E_array = zeros(N_dt)
-        self.r_array = zeros(N_dt-1)
+
+    def con_rate(self, N_min, N_max, dn=1):
+        N_values = array(range(N_min, N_max,dn))
+        m = (N_max - N_min)/float(dn)
+        dt_values = (self.t_stop -self.t_start)/(N_values-1)
+        self.E_array = zeros(m)
+        self.r_array = zeros(m-1)
         E_array = self.E_array
         
         i = 0
         for dt in dt_values:
             self.dt = dt
-            self.N = int((self.t_stop - self.t_start)/dt) + 1
-            self.t = linspace(self.t_start,self.t_stop, self.N)
+            self.N = N_values[i]
+            #print "N in con_rate: ", self.N
+            self.t = linspace(self.t_start, self.t_stop, self.N)
             self.solve_LF()
-            self.E_array[i] = self.find_error()
+            E_array[i] = self.find_error()
             if i>0:
-                n = i-1
-                self.r_array[n] = log(E_array[i-1]/E_array[i])/log(dt_values[i-1]/dt)
+                self.r_array[i-1] = log(E_array[i-1]/E_array[i])/log(dt_values[i-1]/dt)
+
             i+=1
         figure()
         plot(dt_values[:-1], self.r_array)
         title("Convergence rates for different dt")
         xlabel("dt")
         ylabel("Rate")
+        
+                
+            
+    def show_result(self):
         show()
+    
 
   
 
     
 if __name__ == '__main__':
-    linear = Model()
-    sol = Solver(linear)
-    sol.solve_LF()
+    #linear = Model()
+    #sol = Solver(linear)
+    #sol.solve_LF()
     #sol.plot_num_analy_sol()
 
     def a(t):
@@ -147,9 +155,9 @@ if __name__ == '__main__':
     exp_model = Model(a,b,I=0,analytic = exact)
     exp_sol = Solver(exp_model, N = 10000)
     exp_sol.solve_LF()
-    exp_sol.plot_num_analy_sol()
-    #sol.convergence_rate(1, 0.0001, 20)
-    
+    #exp_sol.plot_num_analy_sol()
+    exp_sol.con_rate(100,1000, dn=10)
+    exp_sol.show_result()
     
     
     
