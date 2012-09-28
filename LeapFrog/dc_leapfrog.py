@@ -62,7 +62,6 @@ class Solver:
         Solves the differential eq with the Leapfrog scheme
         """
         self.u = zeros(self.N)
-        #print "N in solve_LF: ", self.N
         self.u[0] = self.u0
         self.u[1] = self.u1
         u = self.u
@@ -115,19 +114,30 @@ class Solver:
         for dt in dt_values:
             self.dt = dt
             self.N = N_values[i]
-            #print "N in con_rate: ", self.N
             self.t = linspace(self.t_start, self.t_stop, self.N)
             self.solve_LF()
             E_array[i] = self.find_error()
             if i>0:
-                self.r_array[i-1] = log(E_array[i-1]/E_array[i])/log(dt_values[i-1]/dt)
+                self.r_array[i-1] = log(E_array[i-1]/E_array[i])/log(dt_values[i-1]/dt_values[i])
 
             i+=1
+        print "at N = %d the error is %g "%( N_values[E_array.argmin()], E_array[E_array.argmin()])
         figure()
         plot(dt_values[:-1], self.r_array)
         title("Convergence rates for different dt")
         xlabel("dt")
         ylabel("Rate")
+        figure()
+        plot(dt_values, E_array)
+        title("Error as function of dt")
+        xlabel("dt")
+        ylabel("Error")
+        figure()
+        plot(N_values, E_array)
+        title("Error as a function of N")
+        xlabel("N")
+        ylabel("Error")
+        
         
                 
             
@@ -139,11 +149,12 @@ class Solver:
 
     
 if __name__ == '__main__':
-    #linear = Model()
-    #sol = Solver(linear)
-    #sol.solve_LF()
+    linear = Model()
+    sol = Solver(linear)
+    sol.solve_LF()
     #sol.plot_num_analy_sol()
-
+    sol.con_rate(10, 101, dn=1)
+    #The error increases when  dt < 0.0408 Error smallest at N=100
     def a(t):
         return 1
     def b(t):
@@ -156,7 +167,7 @@ if __name__ == '__main__':
     exp_sol = Solver(exp_model, N = 10000)
     exp_sol.solve_LF()
     #exp_sol.plot_num_analy_sol()
-    exp_sol.con_rate(100,1000, dn=10)
+    #exp_sol.con_rate(100,1000, dn=10)
     exp_sol.show_result()
     
     
