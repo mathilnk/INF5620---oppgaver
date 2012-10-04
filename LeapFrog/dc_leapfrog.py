@@ -1,31 +1,38 @@
+# hpl: Konvergensrate for problemet med linear solution er vanskelig
+# aa beregne - da er jo losningen eksakt hele tiden og raten er
+# uendelig.
+# Jeg la inn loglog plot og ratene ser greie ut i det andre testeksempelet,
+# bortsett fra at du faar 1 og ikke 2 som forventet. Ser ikke helt
+# hvor feilen er.
+
 from numpy import *
 from matplotlib.pyplot import *
 
 class Model:
-    
+
     def __init__(self,a=lambda t:t, b=None,c=1, I= 0.1, analytic = None):
         """
         The default model has a linear solution. To avoid linear solution you have to provide b not None! a(t) and b(t) and analytic(t) should be functions, c and I a constant. I is the inital condition u(0) = I.
         """
-        
+
         self.a = a
         self.c = c
         self.I = I
         if b==None:
             self.b = lambda t: c + a(t)*(c*t+I)   #now we know the sol is linear
             self.analytic = self.analyticalLinearSol #set analytical sol -->linear
-                                                 
+
         else:
             self.b = b
             self.analytic = analytic # b i given, so we need to know the analytic solution(cannot assume linear solution anymore, it might be linear but we dont know)
 
-  
+
     def f(self,un,tn):
         """
         The general equation u'(t) = f(u,t), in our model u'(t) = -a(t)u(t) + b(t)
         """
         return -self.a(tn)*un + self.b(tn)
-    
+
     def analyticalLinearSol(self, t):
         """
         Only for equations with linear solutions
@@ -47,9 +54,9 @@ class Solver:
         self.N = N
         self.dt = (t_stop - t_start)/(N-1)
         self.u1 = self.forwardEuler(self.u0, t_start)
-        
+
         self.t = linspace(t_start, t_stop, N)
-       
+
 
     def forwardEuler(self,un, tn):
         """
@@ -72,7 +79,7 @@ class Solver:
         for n in xrange(1,N-1):
             u[n+1] = 2*dt*f(u[n],t[n]) + u[n-1]
         #return t,u
-    
+
     def plot_num_analy_sol(self):
         """
         Plots the numerical solution, and the analytical if the solution is linear, or the analytical solution is given.
@@ -86,10 +93,10 @@ class Solver:
             hold('on')
             plot(self.t, self.model.analytic(self.t))
             legend(["Numerical solution", "Analytical solution"])
-        
+
         else:
             print "Analytical solution not given"
-        
+
 
     def find_error(self):
         E = None
@@ -100,7 +107,7 @@ class Solver:
             e = u_e -u
             E = sqrt(sum(e**2)/float(self.N))
         return E
-            
+
 
     def con_rate(self, N_min, N_max, dn=1):
         N_values = array(range(N_min, N_max,dn))
@@ -109,7 +116,7 @@ class Solver:
         self.E_array = zeros(m)
         self.r_array = zeros(m-1)
         E_array = self.E_array
-        
+
         i = 0
         for dt in dt_values:
             self.dt = dt
@@ -122,32 +129,33 @@ class Solver:
 
             i+=1
         print "at N = %d the error is %g "%( N_values[E_array.argmin()], E_array[E_array.argmin()])
+        print self.r_array
         figure()
         plot(dt_values[:-1], self.r_array)
         title("Convergence rates for different dt")
         xlabel("dt")
         ylabel("Rate")
         figure()
-        plot(dt_values, E_array)
+        loglog(dt_values, E_array)
         title("Error as function of dt")
         xlabel("dt")
         ylabel("Error")
         figure()
-        plot(N_values, E_array)
+        loglog(N_values, E_array)
         title("Error as a function of N")
         xlabel("N")
         ylabel("Error")
-        
-        
-                
-            
+
+
+
+
     def show_result(self):
         show()
-    
 
-  
 
-    
+
+
+
 if __name__ == '__main__':
     linear = Model()
     sol = Solver(linear)
@@ -169,8 +177,8 @@ if __name__ == '__main__':
     #exp_sol.plot_num_analy_sol()
     #exp_sol.con_rate(100,1000, dn=10)
     exp_sol.show_result()
-    
-    
-    
-    
-    
+
+
+
+
+
